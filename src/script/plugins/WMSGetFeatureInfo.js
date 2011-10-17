@@ -203,11 +203,47 @@ gxp.plugins.WMSGetFeatureInfo = Ext.extend(gxp.plugins.Tool, {
             var feature;
             for (var i=0,ii=features.length; i<ii; ++i) {
                 feature = features[i];
-                config.push(Ext.applyIf({
+                var tabs = [];
+                for (var p in feature.attributes) {
+                    if (feature.attributes.hasOwnProperty(p) &&
+                        p.indexOf("IMAGE") !== -1 &&
+                        feature.attributes[p] != null)
+                    {
+                        var photo = feature.attributes[p].replace(".jpg", ".thumbnail.jpg");
+                        tabs.push({
+                            border: false,
+                            title: p,
+                            html: '<div style="text-align:center; display:block; margin-left: auto; margin-right:auto"><img src="/site_media/photo_layers/' + photo + '"></img></div>'
+                        });
+                    }
+                }
+                var propertyGrid = {
                     xtype: "propertygrid",
                     title: feature.fid ? feature.fid : title,
+                    height: 300,
+                    width: 'auto',
                     source: feature.attributes
-                }, baseConfig));
+                };
+
+                if (tabs.length > 0) {
+                    var photos = new Ext.Panel({
+                        layout: 'card', activeItem: 0, height: 200, width: 'auto', items: tabs,
+                        border: false, region: 'north'
+                    });
+                    propertyGrid["autoScroll"] = false;
+                    propertyGrid["title"] = "Attributes";
+                    propertyGrid["region"] = "center";
+                    propertyGrid["boxMinHeight"] = 100;
+                    config.push(Ext.applyIf({
+                        title: feature.fid ? feature.fid : title,
+                        layout: 'border',
+                        border: false,
+                        autoScroll: true,
+                        items: [photos, propertyGrid]
+                    }, baseConfig));
+                } else {
+                    config.push(Ext.applyIf(propertyGrid, baseConfig));
+                }
             }
         } else if (text) {
             config.push(Ext.applyIf({
