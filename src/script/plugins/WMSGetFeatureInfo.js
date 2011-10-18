@@ -167,6 +167,7 @@ gxp.plugins.WMSGetFeatureInfo = Ext.extend(gxp.plugins.Tool, {
     displayPopup: function(evt, title, text) {
         var popup;
         var popupKey = evt.xy.x + "." + evt.xy.y;
+        console && console.log(evt);
 
         if (!(popupKey in this.popupCache)) {
             popup = this.addOutput({
@@ -212,28 +213,53 @@ gxp.plugins.WMSGetFeatureInfo = Ext.extend(gxp.plugins.Tool, {
                         var photo = feature.attributes[p].replace(".jpg", ".thumbnail.jpg");
                         tabs.push({
                             border: false,
-                            title: p,
                             html: '<div style="text-align:center; display:block; margin-left: auto; margin-right:auto"><img src="/site_media/photo_layers/' + photo + '"></img></div>'
                         });
                     }
                 }
                 var propertyGrid = {
                     xtype: "propertygrid",
-                    title: feature.fid ? feature.fid : title,
                     height: 300,
                     width: 'auto',
                     source: feature.attributes
                 };
 
                 if (tabs.length > 0) {
-                    var photos = new Ext.Panel({
-                        layout: 'card', activeItem: 0, height: 200, width: 'auto', items: tabs,
-                        border: false, region: 'north'
+                    var photos = (function (tabs) {
+                        var activeItem = 0;
+                        var previous = new Ext.Button({
+                            iconCls: "x-tbar-page-prev", 
+                            handler: function() {
+                            if (activeItem > 0) {
+                                activeItem -= 1;
+                                photos.getLayout().setActiveItem(activeItem)
+                                current.setText((activeItem + 1) + " / " + tabs.length)
+                            }
+                        }});
+                        var next = new Ext.Button({
+                            iconCls: "x-tbar-page-next", 
+                            handler: function() {
+                            if (activeItem < tabs.length - 1) {
+                                activeItem += 1;
+                                photos.getLayout().setActiveItem(activeItem)
+                                current.setText((activeItem + 1) + " / " + tabs.length)
+                            }
+                        }});
+                        var current = new Ext.Toolbar.TextItem({
+                            text: "1 / " + tabs.length
+                        });
+                        var photos = new Ext.Panel({
+                            layout: 'card', activeItem: 0, height: 200, width: 'auto', items: tabs,
+                            border: false, region: 'north',
+                            bbar: [previous, current, next]
+                        });
+                        return photos;
+                    })(tabs);
+                    Ext.applyIf(propertyGrid, {
+                        autoScroll: false,
+                        region: "center",
+                        boxMinHeight: 100
                     });
-                    propertyGrid["autoScroll"] = false;
-                    propertyGrid["title"] = "Attributes";
-                    propertyGrid["region"] = "center";
-                    propertyGrid["boxMinHeight"] = 100;
                     config.push(Ext.applyIf({
                         title: feature.fid ? feature.fid : title,
                         layout: 'border',
@@ -242,6 +268,9 @@ gxp.plugins.WMSGetFeatureInfo = Ext.extend(gxp.plugins.Tool, {
                         items: [photos, propertyGrid]
                     }, baseConfig));
                 } else {
+                    Ext.applyIf(propertyGrid, {
+                        title: feature.fid ? feature.fid : title,
+                    });
                     config.push(Ext.applyIf(propertyGrid, baseConfig));
                 }
             }
